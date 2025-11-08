@@ -1,36 +1,29 @@
-using Amqp0_9_1.Abstractions;
 using Amqp0_9_1.Encoding;
+using Amqp0_9_1.Methods.Constants;
 
 namespace Amqp0_9_1.Methods.Connection;
 
 internal sealed class ConnectionStart : AmqpMethod
 {
-    internal override ushort ClassId => 10;
-    internal override ushort MethodId => 10;
+    internal override ushort ClassId => MethodClassId.Connection;
+    internal override ushort MethodId => ConnectionMethodId.Start;
 
-    public ushort VersionMajor { get; set; }
-    public ushort VersionMinor { get; set; }
-    public Dictionary<string, object> ServerProperties { get; set; } = [];
-    public string Mechanisms { get; set; } = string.Empty;
-    public string Locales { get; set; } = string.Empty;
+    public ushort VersionMajor { get; }
+    public ushort VersionMinor { get; }
+    public Dictionary<string, object> ServerProperties { get; } = [];
+    public string Mechanisms { get; } = string.Empty;
+    public string Locales { get; } = string.Empty;
 
-    public ConnectionStart(byte[] payload)
+    internal ConnectionStart(ReadOnlyMemory<byte> payload)
     {
-        int offset = 0;
-
-        var classId = Amqp0_9_1Reader.DecodeShort(payload, ref offset);
-        var methodId = Amqp0_9_1Reader.DecodeShort(payload, ref offset);
-
-        Validate(classId, methodId);
-        
-        VersionMajor = Amqp0_9_1Reader.DecodeOctet(payload, ref offset);
-        VersionMinor = Amqp0_9_1Reader.DecodeOctet(payload, ref offset);
-        ServerProperties = Amqp0_9_1Reader.DecodeFieldTable(payload, ref offset);
-        Mechanisms = Amqp0_9_1Reader.DecodeLongStr(payload, ref offset);
-        Locales = Amqp0_9_1Reader.DecodeLongStr(payload, ref offset);
+        VersionMajor = AmqpDecoder.Octet(ref payload);
+        VersionMinor = AmqpDecoder.Octet(ref payload);
+        ServerProperties = AmqpDecoder.Table(ref payload);
+        Mechanisms = AmqpDecoder.LongString(ref payload);
+        Locales = AmqpDecoder.LongString(ref payload);
     }
 
-    internal override ReadOnlySpan<byte> GetPayload()
+    internal override ReadOnlyMemory<byte> GetPayload()
     {
         throw new NotImplementedException();
     }

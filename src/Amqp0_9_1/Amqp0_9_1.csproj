@@ -14,11 +14,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Amqp.Core\Amqp.Core.csproj" />
+    <PackageReference Include="System.IO.Pipelines" Version="9.0.10" />
+    <PackageReference Include=" System.Threading.Channels" Version="9.0.10" />
   </ItemGroup>
-
-  <ItemGroup>
-    <PackageReference Include="System.IO.Pipelines" Version="9.0.9" />
-  </ItemGroup>
-
 </Project>

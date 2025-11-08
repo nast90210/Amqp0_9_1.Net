@@ -1,32 +1,25 @@
-using Amqp0_9_1.Abstractions;
 using Amqp0_9_1.Encoding;
+using Amqp0_9_1.Methods.Constants;
 
 namespace Amqp0_9_1.Methods.Connection;
 
 internal sealed class ConnectionTune : AmqpMethod
 {
-    internal override ushort ClassId => 10;
-    internal override ushort MethodId => 30;
+    internal override ushort ClassId => MethodClassId.Connection;
+    internal override ushort MethodId => ConnectionMethodId.Tune;
 
-    public ushort ChannelMax { get; set; }
-    public uint   FrameMax   { get; set; }
-    public ushort Heartbeat  { get; set; }
+    public ushort ChannelMax { get; }
+    public uint FrameMax { get; }
+    public ushort Heartbeat { get; }
 
-    public ConnectionTune(byte[] payload)
+    public ConnectionTune(ReadOnlyMemory<byte> payload)
     {
-        int offset = 0;
-
-        var classId = Amqp0_9_1Reader.DecodeShort(payload, ref offset);
-        var methodId = Amqp0_9_1Reader.DecodeShort(payload, ref offset);
-
-        Validate(classId, methodId);
-
-        ChannelMax = Amqp0_9_1Reader.DecodeShort(payload, ref offset);
-        FrameMax = Amqp0_9_1Reader.DecodeLong(payload, ref offset);
-        Heartbeat= Amqp0_9_1Reader.DecodeShort(payload, ref offset);
+        ChannelMax = AmqpDecoder.Short(ref payload);
+        FrameMax = AmqpDecoder.Long(ref payload);
+        Heartbeat = AmqpDecoder.Short(ref payload);
     }
 
-    internal override ReadOnlySpan<byte> GetPayload()
+    internal override ReadOnlyMemory<byte> GetPayload()
     {
         throw new NotImplementedException();
     }

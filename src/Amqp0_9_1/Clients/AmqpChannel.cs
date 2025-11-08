@@ -1,143 +1,72 @@
-using Amqp0_9_1.Frames;
 using Amqp0_9_1.Methods.Channel;
+using Amqp0_9_1.Processors;
+using Amqp0_9_1.Constants;
 
-namespace Amqp0_9_1.Clients;
-
-public sealed class AmqpChannel : IAsyncDisposable
+namespace Amqp0_9_1.Clients
 {
-    private readonly ushort _channelId;
-    private readonly FrameReader _frameReader;
-    private readonly FrameWriter _frameWriter;
-
-    internal AmqpChannel(ushort channelId, FrameReader frameReader, FrameWriter frameWriter)
+    public sealed class AmqpChannel : IDisposable
     {
-        _channelId = channelId;
-        _frameReader = frameReader;
-        _frameWriter = frameWriter;
-    }
+        private readonly ushort _channelId;
+        private readonly InternalAmqpProcessor _amqpProcessor;
+        private bool _isOpened;
 
-    internal async Task Create(CancellationToken cancellationToken)
-    {
-        await SendChannelOpenAsync(cancellationToken);
-        await ReceiveChannelOpenOkAsync(cancellationToken);
-    }
+        internal AmqpChannel(ushort channelId, InternalAmqpProcessor amqpProcessor)
+        {
+            _channelId = channelId;
+            _amqpProcessor = amqpProcessor;
+        }
 
-    private async Task SendChannelOpenAsync(CancellationToken cancellationToken)
-    {
-        var channelOpen = new ChannelOpen();
-        await _frameWriter.WriteMethodAsync(channelOpen, _channelId, cancellationToken);
-    }
+        internal async Task Create(CancellationToken cancellationToken)
+        {
+            var channelOpen = new ChannelOpen();
+            await _amqpProcessor.WriteMethodAsync(channelOpen, _channelId, cancellationToken);
+            var channelOpenOk = await _amqpProcessor.ReadMethodAsync<ChannelOpenOk>(cancellationToken);
+            _isOpened = channelOpenOk != null;
+        }
 
-    private async Task ReceiveChannelOpenOkAsync(CancellationToken cancellationToken)
-    {
-        var amqpMethod = await _frameReader.ReadMethodAsync(cancellationToken);
+        public async Task<AmqpExchange> ExchangeDeclareAsync(
+            string exchangeName,
+            ExchangeType exchangeType,
+            CancellationToken cancellationToken = default)
+        {
+            var exchange = new AmqpExchange(_channelId, _amqpProcessor);
+            await exchange.InternalDeclareAsync(exchangeName, exchangeType.ToString().ToLowerInvariant(), cancellationToken);
+            return exchange;
+        }
 
-        if(amqpMethod.GetType() != typeof(ChannelOpenOk))
-            throw new InvalidOperationException($"Amqp method is not valid - {amqpMethod.GetType()}");
-    }
+        public async Task<AmqpQueue> QueueDeclareAsync(
+            string queueName,
+            CancellationToken cancellationToken = default)
+        {
+            var queue = new AmqpQueue(queueName, _channelId, _amqpProcessor);
+            await queue.InternalDeclareAsync(cancellationToken);
+            return queue;
+        }
 
-    public async Task<AmqpExchange> InitiateExchangeAsync(
-        string exchangeName, 
-        string exchangeType, 
-        CancellationToken cancellationToken = default)
-    {
-        var exchange = new AmqpExchange(_channelId, _frameReader, _frameWriter);
-        await exchange.InternalDeclareAsync(exchangeName, exchangeType, cancellationToken);
-        return exchange;
-    }
+        public async Task<bool> CloseAsync(
+            ushort replyCode,
+            string replyText,
+            ushort exceptionClassId = 0,
+            ushort exceptionMethodId = 0,
+            CancellationToken cancellationToken = default)
+        {
+            var channelClose = new ChannelClose(replyCode, replyText, exceptionClassId, exceptionMethodId);
+            await _amqpProcessor.WriteMethodAsync(channelClose, _channelId, cancellationToken);
+            var channelCloseOk = await _amqpProcessor.ReadMethodAsync<ChannelCloseOk>(cancellationToken);
+            return channelCloseOk != null;
+        }
 
-    public async Task<AmqpQueue> InitiateQueueAsync(
-        string queueName,
-        CancellationToken cancellationToken = default)
-    {
-        var queue = new AmqpQueue(queueName, _channelId, _frameReader, _frameWriter);
-        await queue.InternalDeclareAsync(cancellationToken);
-        return queue;
-    }
+        public async ValueTask DisposeAsync()
+        {
+            if (!_isOpened)
+            {
+                await CloseAsync(200, "Channel disposing");
+            }
+        }
 
-    // // ---------- Publishing ----------
-    // public async Task BasicPublishAsync(string exchange,
-    //                                     string routingKey,
-    //                                     byte[] body,
-    //                                     bool mandatory = false,
-    //                                     bool immediate = false,
-    //                                     CancellationToken ct = default)
-    // {
-    //     var basicPublish = new BasicPublish
-    //     {
-    //         // Reserved1 = 0,
-    //         Exchange = exchange,
-    //         RoutingKey = routingKey,
-    //         Mandatory = mandatory,
-    //         Immediate = immediate
-    //     };
-    //     await _connection.SendMethodAsync(_channelId, basicPublish, ct).ConfigureAwait(false);
-
-    //     // Header frame (content‑type, delivery‑mode etc.) – minimal example
-    //     var header = new BasicContentHeader
-    //     {
-    //         BodySize = (ulong)body.Length,
-    //         PropertyFlags = 0 // no properties set
-    //     };
-
-    //     var headerFrame = FrameWriter.BuildHeaderFrame(_channelId, header.ClassId, header.Weight, header.BodySize, new Dictionary<string, object>());
-    //     await _connection!._transport!.SendAsync(headerFrame, 0, headerFrame.Length, ct)
-    //                      .ConfigureAwait(false);
-
-    //     // Body frame(s)
-    //     var bodyFrame = FrameWriter.BuildBodyFrame(_channelId, body);
-    //     await _connection._transport.SendAsync(bodyFrame, 0, bodyFrame.Length, ct)
-    //                      .ConfigureAwait(false);
-    // }
-
-    // // ---------- Consuming ----------
-    // public async Task<BasicConsumer> BasicConsumeAsync(string queue,
-    //                                                    string consumerTag = "",
-    //                                                    bool noLocal = false,
-    //                                                    bool noAck = false,
-    //                                                    bool exclusive = false,
-    //                                                    Dictionary<string, object>? arguments = null,
-    //                                                    CancellationToken ct = default)
-    // {
-    //     var consume = new BasicConsume
-    //     {
-    //         Queue = queue,
-    //         ConsumerTag = consumerTag,
-    //         NoLocal = noLocal,
-    //         NoAck = noAck,
-    //         // Exclusive = exclusive,
-    //         Arguments = arguments ?? new Dictionary<string, object>()
-    //     };
-    //     await _connection.SendMethodAsync(_channelId, consume, ct).ConfigureAwait(false);
-    //     var ok = await _connection.WaitForMethodAsync<BasicConsumeOk>(_channelId, ct).ConfigureAwait(false);
-    //     return new BasicConsumer(this, ok.ConsumerTag);
-    // }
-
-    // // ---------- Acknowledgement ----------
-    // public Task BasicAckAsync(ulong deliveryTag, bool multiple = false, CancellationToken ct = default)
-    // {
-    //     var ack = new BasicAck
-    //     {
-    //         DeliveryTag = deliveryTag,
-    //         Multiple = multiple
-    //     };
-    //     return _connection.SendMethodAsync(_channelId, ack, ct);
-    // }
-
-    // public Task BasicNackAsync(ulong deliveryTag, bool multiple = false, bool requeue = true, CancellationToken ct = default)
-    // {
-    //     var ack = new BasicNack
-    //     {
-    //         DeliveryTag = deliveryTag,
-    //         Multiple = multiple,
-    //         Requeue = requeue
-    //     };
-    //     return _connection.SendMethodAsync(_channelId, ack, ct);
-    // }
-
-    public async ValueTask DisposeAsync()
-    {
-        var channelClose = new ChannelClose(200, "Channel closed");
-        await _frameWriter.WriteMethodAsync(channelClose, _channelId).ConfigureAwait(false);
+        public void Dispose()
+        {
+            DisposeAsync().GetAwaiter().GetResult();
+        }
     }
 }

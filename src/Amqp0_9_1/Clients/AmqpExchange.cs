@@ -1,19 +1,17 @@
-using Amqp0_9_1.Frames;
 using Amqp0_9_1.Methods.Exchange;
+using Amqp0_9_1.Processors;
 
 namespace Amqp0_9_1.Clients
 {
     public sealed class AmqpExchange
     {
         private readonly ushort _channelId;
-        private readonly FrameReader _frameReader;
-        private readonly FrameWriter _frameWriter;
+        private readonly InternalAmqpProcessor _amqpDispatcher;
 
-        internal AmqpExchange(ushort channelId, FrameReader frameReader, FrameWriter frameWriter)
+        internal AmqpExchange(ushort channelId, InternalAmqpProcessor amqpDispatcher)
         {
             _channelId = channelId;
-            _frameReader = frameReader;
-            _frameWriter = frameWriter;
+            _amqpDispatcher = amqpDispatcher;
         }
 
         internal async Task InternalDeclareAsync(string exchangeName, string exchangeType, CancellationToken cancellationToken)
@@ -23,8 +21,9 @@ namespace Amqp0_9_1.Clients
 
         private async Task SendDeclareAsync(string exchangeName, string exchangeType, CancellationToken cancellationToken)
         {
+            //TODO: Add Arguments init
             var exchangeDeclare = new ExchangeDeclare(exchangeName, exchangeType);
-            await _frameWriter.WriteMethodAsync(exchangeDeclare, _channelId, cancellationToken);
+            await _amqpDispatcher.WriteMethodAsync(exchangeDeclare, _channelId, cancellationToken);
         }
     }
 }

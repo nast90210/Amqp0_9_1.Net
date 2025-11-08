@@ -1,45 +1,59 @@
-using Amqp0_9_1.Abstractions;
+using Amqp0_9_1.Primitives.Frames;
+using Amqp0_9_1.Encoding;
 using Amqp0_9_1.Methods.Basic;
 using Amqp0_9_1.Methods.Channel;
 using Amqp0_9_1.Methods.Connection;
+using Amqp0_9_1.Methods.Constants;
 
-namespace Amqp0_9_1.Methods;
-
-internal static class MethodFactory
+namespace Amqp0_9_1.Methods
 {
-    public static AmqpMethod Create(ushort classId, ushort methodId, byte[] payload)
+    internal static class MethodFactory
     {
-        switch (classId)
+        internal static AmqpMethod Create(AmqpRawFrame methodRawFrame)
         {
-            case 10:
-                switch (methodId)
-                {
-                    case 10:
-                        return new ConnectionStart(payload);
-                    case 30:
-                        return new ConnectionTune(payload);
-                    case 41:
-                        return new ConnectionOpenOk(payload);
-                }
-                break;
-            case 20:
-                switch (methodId)
-                {
-                    case 11:
-                        return new ChannelOpenOk(payload);
-                }
-                break;
-            case 60:
-                switch(methodId)
-                {
-                    case 21:
-                        return new BasicConsumeOk(payload);
-                }
-                break;
-            default:
-                throw new NotSupportedException($"Unknown class-id {classId}.");
+            var payload = methodRawFrame.Payload;
+            var classId = AmqpDecoder.Short(ref payload);
+            var methodId = AmqpDecoder.Short(ref payload);
+
+            switch (classId)
+            {
+                case MethodClassId.Connection:
+                    switch (methodId)
+                    {
+                        case ConnectionMethodId.Start:
+                            return new ConnectionStart(payload);
+                        case ConnectionMethodId.Tune:
+                            return new ConnectionTune(payload);
+                        case ConnectionMethodId.OpenOk:
+                            return new ConnectionOpenOk(payload);
+                        case ConnectionMethodId.ConnectionClose:
+                            return new ConnectionClose(payload);
+                    }
+                    break;
+                case MethodClassId.Channel:
+                    switch (methodId)
+                    {
+                        case ChannelMethodId.OpenOk:
+                            return new ChannelOpenOk(payload);
+                        case ChannelMethodId.CloseOk:
+                            return new ChannelCloseOk();
+                    }
+                    break;
+                case MethodClassId.Basic:
+                    switch(methodId)
+                    {
+                        case BasicMethodId.ConsumeOk:
+                            return new BasicConsumeOk(payload);
+                        case BasicMethodId.Deliver:
+                            return new BasicDeliver(payload);
+                    }
+                    break;
+                default:
+                    throw new NotSupportedException($"Unknown class-id {classId}.");
+            }
+
+            throw new NotSupportedException($"Unknown method-id {methodId} for class-id {classId}.");
         }
-        
-        throw new NotSupportedException($"Unknown method-id {methodId} for class-id {classId}.");
     }
+
 }

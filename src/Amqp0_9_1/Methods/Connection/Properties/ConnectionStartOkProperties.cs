@@ -13,16 +13,16 @@ namespace Amqp0_9_1.Methods.Connection.Properties
         {
             var assembly = Assembly.GetEntryAssembly() ?? Assembly.GetExecutingAssembly();
 
-            product = assembly.GetCustomAttribute<AssemblyProductAttribute>()?.Product ?? 
+            product = assembly.GetCustomAttribute<AssemblyProductAttribute>()?.Product ??
                         assembly.GetName().Name;
 
             version = assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion ??
-                        assembly.GetName().Version?.ToString() ?? 
+                        assembly.GetName().Version?.ToString() ??
                         "0.0.0";
 
             platform = $"dotnet/{Environment.Version}";
 
-            copyright = assembly.GetCustomAttribute<AssemblyCopyrightAttribute>()?.Copyright ?? 
+            copyright = assembly.GetCustomAttribute<AssemblyCopyrightAttribute>()?.Copyright ??
                         "Copyright";
         }
 
@@ -30,10 +30,10 @@ namespace Amqp0_9_1.Methods.Connection.Properties
         {
             return new Dictionary<string, object>
             {
-                { nameof(product),      product },
-                { nameof(version),      version },
-                { nameof(platform),     platform },
-                { nameof(copyright),    copyright }
+                { nameof(product), product },
+                { nameof(version), version },
+                { nameof(platform), platform },
+                { nameof(copyright), copyright }
             };
         }
     }

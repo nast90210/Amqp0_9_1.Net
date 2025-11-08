@@ -1,24 +1,32 @@
-using System.Buffers;
-using Amqp0_9_1.Abstractions;
 using Amqp0_9_1.Encoding;
+using Amqp0_9_1.Methods.Constants;
+using Amqp0_9_1.Utilities;
 
-namespace Amqp0_9_1.Methods.Connection;
-
-internal sealed class ConnectionOpen(string virtualHost) : AmqpMethod
+namespace Amqp0_9_1.Methods.Connection
 {
-    internal override ushort ClassId => 10;
-    internal override ushort MethodId => 40;
-
-    public string VirtualHost { get; set; } = virtualHost;
-    public string Reserved1   { get; set; } = string.Empty;
-    public bool   Reserved2   { get; set; } = false;
-
-    internal override ReadOnlySpan<byte> GetPayload()
+    internal sealed class ConnectionOpen : AmqpMethod
     {
-        var buffer = InitiateBuffer();
-        buffer.Write(Amqp0_9_1Writer.EncodeShortStr(VirtualHost));
-        buffer.Write(Amqp0_9_1Writer.EncodeShortStr(Reserved1));
-        buffer.Write(Amqp0_9_1Writer.EncodeBool(Reserved2));
-        return buffer.WrittenSpan;
+        internal override ushort ClassId => MethodClassId.Connection;
+        internal override ushort MethodId => ConnectionMethodId.Open;
+
+        public string VirtualHost { get; }
+        public string Reserved1 { get; } = string.Empty;
+        public bool Reserved2 { get; }
+
+        public ConnectionOpen(string virtualHost)
+        {
+            VirtualHost = virtualHost;
+        }
+
+        internal override ReadOnlyMemory<byte> GetPayload()
+        {
+            using var buffer = new MemoryBuffer();
+            buffer.Write(AmqpEncoder.Short(ClassId));
+            buffer.Write(AmqpEncoder.Short(MethodId));
+            buffer.Write(AmqpEncoder.ShortString(VirtualHost));
+            buffer.Write(AmqpEncoder.ShortString(Reserved1));
+            buffer.Write(AmqpEncoder.Bool(Reserved2));
+            return buffer.WrittenMemory;
+        }
     }
 }

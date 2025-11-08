@@ -1,34 +1,50 @@
-using System.Buffers;
-using Amqp0_9_1.Abstractions;
 using Amqp0_9_1.Encoding;
+using Amqp0_9_1.Methods.Constants;
+using Amqp0_9_1.Utilities;
 
-namespace Amqp0_9_1.Methods.Connection;
-
-internal sealed class ConnectionClose(
-    ushort replyCode,
-    string replyText,
-    ushort? exceptionClassId = null,
-    ushort? exceptionMethodId = null) : AmqpMethod
+namespace Amqp0_9_1.Methods.Connection
 {
-    internal override ushort ClassId => 10;
-    internal override ushort MethodId => 50;
-
-    public ushort ReplyCode { get; set; } = replyCode;
-    public string ReplyText { get; set; } = replyText;
-
-    public ushort ExceptionClassId { get; set; } = exceptionClassId ?? 0;
-    public ushort ExceptionMethodId { get; set; } = exceptionMethodId ?? 0;
-
-    internal override ReadOnlySpan<byte> GetPayload()
+    internal sealed class ConnectionClose : AmqpMethod
     {
-        var buffer = InitiateBuffer();
-        buffer.Write(Amqp0_9_1Writer.EncodeShort(ReplyCode));
-        buffer.Write(Amqp0_9_1Writer.EncodeShortStr(ReplyText));
-    
-        buffer.Write(Amqp0_9_1Writer.EncodeShort(ExceptionClassId));
-    
-        buffer.Write(Amqp0_9_1Writer.EncodeShort(ExceptionMethodId));
+        internal override ushort ClassId => MethodClassId.Connection;
+        internal override ushort MethodId => ConnectionMethodId.ConnectionClose;
 
-        return buffer.WrittenSpan;
+        public ushort ReplyCode { get; }
+        public string ReplyText { get; }
+        public ushort ExceptionClassId { get; }
+        public ushort ExceptionMethodId { get; }
+
+        public ConnectionClose(
+            ushort replyCode,
+            string replyText,
+            ushort? exceptionClassId,
+            ushort? exceptionMethodId)
+        {
+            ReplyCode = replyCode;
+            ReplyText = replyText;
+            ExceptionClassId = exceptionClassId ?? 0;
+            ExceptionMethodId = exceptionMethodId ?? 0;
+        }
+
+        public ConnectionClose(
+            ReadOnlyMemory<byte> payload)
+        {
+            ReplyCode = AmqpDecoder.Short(ref payload);;
+            ReplyText = AmqpDecoder.ShortString(ref payload);;
+            ExceptionClassId = AmqpDecoder.Short(ref payload);;
+            ExceptionMethodId = AmqpDecoder.Short(ref payload);;
+        }
+
+        internal override ReadOnlyMemory<byte> GetPayload()
+        {
+            using var buffer = new MemoryBuffer();
+            buffer.Write(AmqpEncoder.Short(ClassId));
+            buffer.Write(AmqpEncoder.Short(MethodId));
+            buffer.Write(AmqpEncoder.Short(ReplyCode));
+            buffer.Write(AmqpEncoder.ShortString(ReplyText));
+            buffer.Write(AmqpEncoder.Short(ExceptionClassId));
+            buffer.Write(AmqpEncoder.Short(ExceptionMethodId));
+            return buffer.WrittenMemory;
+        }
     }
 }

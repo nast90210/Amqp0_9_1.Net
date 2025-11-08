@@ -1,21 +1,20 @@
-using System.Buffers;
-using System.Net;
-using Amqp.Core.Primitives.SASL;
-using Amqp0_9_1.Abstractions;
+using Amqp0_9_1.Primitives.SASL;
 using Amqp0_9_1.Encoding;
 using Amqp0_9_1.Methods.Connection.Properties;
+using Amqp0_9_1.Utilities;
+using Amqp0_9_1.Methods.Constants;
 
 namespace Amqp0_9_1.Methods.Connection;
 
 internal sealed class ConnectionStartOk : AmqpMethod
 {
-    internal override ushort ClassId => 10;
-    internal override ushort MethodId => 11;
+    internal override ushort ClassId => MethodClassId.Connection;
+    internal override ushort MethodId => ConnectionMethodId.StartOk;
 
-    public ConnectionStartOkProperties ClientProperties { get; set; } = new();
-    public string Mechanism { get; set; }
-    public SaslPlainResponse Response { get; set; }
-    public string Locale { get; set; }
+    public ConnectionStartOkProperties ClientProperties { get; }
+    public string Mechanism { get; }
+    public SaslPlainResponse Response { get; }
+    public string Locale { get; }
 
     internal ConnectionStartOk(
         ConnectionStartOkProperties clientProperties,
@@ -29,14 +28,15 @@ internal sealed class ConnectionStartOk : AmqpMethod
         Locale = locale;
     }
 
-    internal override ReadOnlySpan<byte> GetPayload()
+    internal override ReadOnlyMemory<byte> GetPayload()
     {
-        var buffer = InitiateBuffer();
-        buffer.Write(Amqp0_9_1Writer.EncodeFieldTable(ClientProperties.ToDictionary()));
-        buffer.Write(Amqp0_9_1Writer.EncodeShortStr(Mechanism));
-        buffer.Write(Amqp0_9_1Writer.EncodeLong((uint)Response.Length));
-        buffer.Write(Response.AsArray());
-        buffer.Write(Amqp0_9_1Writer.EncodeShortStr(Locale));
-        return buffer.WrittenSpan;
+        using var buffer = new MemoryBuffer();
+        buffer.Write(AmqpEncoder.Short(ClassId));
+        buffer.Write(AmqpEncoder.Short(MethodId));
+        buffer.Write(AmqpEncoder.Table(ClientProperties.ToDictionary()));
+        buffer.Write(AmqpEncoder.ShortString(Mechanism));
+        buffer.Write(Response.GetPayload());
+        buffer.Write(AmqpEncoder.ShortString(Locale));
+        return buffer.WrittenMemory;
     }
 }

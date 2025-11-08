@@ -1,24 +1,33 @@
-using System.Buffers;
-using Amqp0_9_1.Abstractions;
 using Amqp0_9_1.Encoding;
+using Amqp0_9_1.Methods.Constants;
+using Amqp0_9_1.Utilities;
 
 namespace Amqp0_9_1.Methods.Connection;
 
-internal sealed class ConnectionTuneOk(ushort channelMax, uint frameMax, ushort heartbeat) : AmqpMethod
+internal sealed class ConnectionTuneOk : AmqpMethod
 {
-    internal override ushort ClassId => 10;
-    internal override ushort MethodId => 31;
+    internal override ushort ClassId => MethodClassId.Connection;
+    internal override ushort MethodId => ConnectionMethodId.TuneOk;
 
-    public ushort ChannelMax { get; set; } = channelMax;
-    public uint FrameMax { get; set; } = frameMax;
-    public ushort Heartbeat { get; set; } = heartbeat;
+    public ushort ChannelMax { get; }
+    public uint FrameMax { get; }
+    public ushort Heartbeat { get; }
 
-    internal override ReadOnlySpan<byte> GetPayload()
+    public ConnectionTuneOk(ushort channelMax, uint frameMax, ushort heartbeat)
     {
-        var buffer = InitiateBuffer();
-        buffer.Write(Amqp0_9_1Writer.EncodeShort(ChannelMax));
-        buffer.Write(Amqp0_9_1Writer.EncodeLong(FrameMax));
-        buffer.Write(Amqp0_9_1Writer.EncodeShort(Heartbeat));
-        return buffer.WrittenSpan;
+        ChannelMax = channelMax;
+        FrameMax = frameMax;
+        Heartbeat = heartbeat;
+    }
+
+    internal override ReadOnlyMemory<byte> GetPayload()
+    {
+        using var buffer = new MemoryBuffer();
+        buffer.Write(AmqpEncoder.Short(ClassId));
+        buffer.Write(AmqpEncoder.Short(MethodId));
+        buffer.Write(AmqpEncoder.Short(ChannelMax));
+        buffer.Write(AmqpEncoder.Long(FrameMax));
+        buffer.Write(AmqpEncoder.Short(Heartbeat));
+        return buffer.WrittenMemory;
     }
 }
