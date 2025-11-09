@@ -95,7 +95,7 @@ Please follow the existing coding style and include XML documentation for public
 
 ## License
 
-This project is licensed under the **MIT License**. See the `LICENSE` file for full details.
+This project is licensed under the [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE). See the `LICENSE` file for full details.
 
 ---
 
