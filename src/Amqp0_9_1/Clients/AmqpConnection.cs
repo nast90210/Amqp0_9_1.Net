@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Globalization;
+using Amqp0_9_1.Abstractions;
 using Amqp0_9_1.Primitives.SASL;
 using Amqp0_9_1.Methods.Connection;
 using Amqp0_9_1.Methods.Connection.Properties;
@@ -9,7 +10,7 @@ namespace Amqp0_9_1.Clients
 {
     public sealed class AmqpConnection : IDisposable
     {
-        private readonly InternalAmqpProcessor _amqpProcessor;
+        private readonly IAmqpProcessor _amqpProcessor;
         private bool _isOpened;
 
         public AmqpConnection(string host, int port)
@@ -17,7 +18,7 @@ namespace Amqp0_9_1.Clients
             Debug.WriteLine($"{this}: Connecting host: {host}.");
             Debug.WriteLine($"{this}: Connecting port: {port}.");
 
-            _amqpProcessor = new InternalAmqpProcessor(host, port);
+            _amqpProcessor = new GeneralAmqpProcessor(host, port);
         }
 
         public async Task ConnectAsync(
@@ -26,7 +27,7 @@ namespace Amqp0_9_1.Clients
             string virtualHost = "/",
             CancellationToken cancellationToken = default)
         {
-            await _amqpProcessor.ConnectServerAsync(cancellationToken).ConfigureAwait(false);
+            await _amqpProcessor.StartProcessingAsync(cancellationToken).ConfigureAwait(false);
 
             await ProcessHandshake(username, password, virtualHost, cancellationToken);
         }
@@ -150,6 +151,7 @@ namespace Amqp0_9_1.Clients
             {
                 await SendConnectionCloseAsync(200, "Goodbye").ConfigureAwait(false);
                 //TODO: add awaiting ConnectionCloseOk
+                _isOpened = false;
             }
 
             _amqpProcessor.Dispose();

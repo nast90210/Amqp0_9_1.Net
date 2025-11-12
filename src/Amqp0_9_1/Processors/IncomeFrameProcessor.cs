@@ -24,7 +24,7 @@ namespace Amqp0_9_1.Processors
             _messageChannelWriter = messageChannelWriter;
         }
 
-        internal async void ExecuteAsync(CancellationToken cancellationToken)
+        internal async Task ExecuteAsync(CancellationToken cancellationToken)
         {
             try
             {

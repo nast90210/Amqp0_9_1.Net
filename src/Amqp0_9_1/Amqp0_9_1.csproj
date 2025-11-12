@@ -19,8 +19,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
-      <_Parameter1>Amqp0_9_1.Unit</_Parameter1>
-    </AssemblyAttribute>
+      <InternalsVisibleTo Include="Amqp0_9_1.Unit" />
+      <InternalsVisibleTo Include="DynamicProxyGenAssembly2" />
   </ItemGroup>
+    
 </Project>

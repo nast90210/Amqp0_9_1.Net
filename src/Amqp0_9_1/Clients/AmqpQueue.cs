@@ -1,7 +1,7 @@
+using Amqp0_9_1.Abstractions;
 using Amqp0_9_1.Messages;
 using Amqp0_9_1.Methods.Basic;
 using Amqp0_9_1.Methods.Queue;
-using Amqp0_9_1.Processors;
 
 namespace Amqp0_9_1.Clients
 {
@@ -9,9 +9,9 @@ namespace Amqp0_9_1.Clients
     {
         private readonly string _queueName;
         private readonly ushort _channelId;
-        private readonly InternalAmqpProcessor _amqpProcessor;
+        private readonly IAmqpProcessor _amqpProcessor;
 
-        internal AmqpQueue(string queueName, ushort channelId, InternalAmqpProcessor amqpProcessor)
+        internal AmqpQueue(string queueName, ushort channelId, IAmqpProcessor amqpProcessor)
         {
             _queueName = queueName;
             _channelId = channelId;

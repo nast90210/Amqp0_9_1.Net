@@ -1,5 +1,5 @@
+using Amqp0_9_1.Abstractions;
 using Amqp0_9_1.Methods.Channel;
-using Amqp0_9_1.Processors;
 using Amqp0_9_1.Constants;
 
 namespace Amqp0_9_1.Clients
@@ -7,10 +7,10 @@ namespace Amqp0_9_1.Clients
     public sealed class AmqpChannel : IDisposable
     {
         private readonly ushort _channelId;
-        private readonly InternalAmqpProcessor _amqpProcessor;
+        private readonly IAmqpProcessor _amqpProcessor;
         private bool _isOpened;
 
-        internal AmqpChannel(ushort channelId, InternalAmqpProcessor amqpProcessor)
+        internal AmqpChannel(ushort channelId, IAmqpProcessor amqpProcessor)
         {
             _channelId = channelId;
             _amqpProcessor = amqpProcessor;
@@ -58,15 +58,16 @@ namespace Amqp0_9_1.Clients
 
         public async ValueTask DisposeAsync()
         {
-            if (!_isOpened)
+            if (_isOpened)
             {
                 await CloseAsync(200, "Channel disposing");
+                _isOpened = false;
             }
         }
 
         public void Dispose()
         {
-            DisposeAsync().GetAwaiter().GetResult();
+            DisposeAsync().AsTask().ConfigureAwait(false).GetAwaiter().GetResult();
         }
     }
 }

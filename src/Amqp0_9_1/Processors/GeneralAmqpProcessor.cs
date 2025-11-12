@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.IO.Pipelines;
 using System.Runtime.InteropServices;
 using System.Threading.Channels;
+using Amqp0_9_1.Abstractions;
 using Amqp0_9_1.Primitives.Frames;
 using Amqp0_9_1.Frames;
 using Amqp0_9_1.Methods;
@@ -11,43 +12,41 @@ using Amqp0_9_1.Messages;
 
 namespace Amqp0_9_1.Processors
 {
-    internal sealed class InternalAmqpProcessor : IDisposable
+    internal class GeneralAmqpProcessor : IAmqpProcessor
     {
         private readonly Transport _transport;
         private readonly Pipe _incomePipe = new();
         private readonly Pipe _outcomePipe = new();
 
-        private readonly Channel<AmqpRawFrame> _methodChannel;
-        private readonly Channel<AmqpRawFrame> _messageChannel;
         private readonly IncomeFrameProcessor _frameProcessor;
         private readonly IncomeMethodProcessor _methodProcessor;
         private readonly IncomeMessageProcessor _messageProcessor;
 
-        public InternalAmqpProcessor(string host, int port)
+        public GeneralAmqpProcessor(string host, int port)
         {
             _transport = new TcpTransport(host, port);
 
-            _methodChannel = Channel.CreateUnbounded<AmqpRawFrame>();
-            _messageChannel = Channel.CreateUnbounded<AmqpRawFrame>();
+            var methodChannel = Channel.CreateUnbounded<AmqpRawFrame>();
+            var messageChannel = Channel.CreateUnbounded<AmqpRawFrame>();
 
-            _frameProcessor = new IncomeFrameProcessor(_incomePipe.Reader, _methodChannel.Writer, _messageChannel.Writer);
-            _methodProcessor = new IncomeMethodProcessor(_methodChannel.Reader);
-            _messageProcessor = new IncomeMessageProcessor(_messageChannel.Reader);
+            _frameProcessor = new IncomeFrameProcessor(_incomePipe.Reader, methodChannel.Writer, messageChannel.Writer);
+            _methodProcessor = new IncomeMethodProcessor(methodChannel.Reader);
+            _messageProcessor = new IncomeMessageProcessor(messageChannel.Reader);
         }
 
-        internal async Task ConnectServerAsync(CancellationToken cancellationToken = default)
+        public async Task StartProcessingAsync(CancellationToken cancellationToken = default)
         {
             await _transport.ConnectAsync(cancellationToken).ConfigureAwait(false);
 
-            OutcomeWriterAsync(cancellationToken);
-            IncomeReaderAsync(cancellationToken);
+            var outcomeWriterTask = OutcomeWriterAsync(cancellationToken);
+            var incomeReaderTask = IncomeReaderAsync(cancellationToken);
 
-            _frameProcessor.ExecuteAsync(cancellationToken);
-            _methodProcessor.ExecuteAsync(cancellationToken);
-            _messageProcessor.ExecuteAsync(cancellationToken);
+            var frameProcessorTask = _frameProcessor.ExecuteAsync(cancellationToken);
+            var methodProcessorTask = _methodProcessor.ExecuteAsync(cancellationToken);
+            var messageProcessorTask = _messageProcessor.ExecuteAsync(cancellationToken);
         }
 
-        private async void OutcomeWriterAsync(CancellationToken token)
+        private async Task OutcomeWriterAsync(CancellationToken token)
         {
             try
             {
@@ -77,7 +76,7 @@ namespace Amqp0_9_1.Processors
             }
         }
 
-        private async void IncomeReaderAsync(CancellationToken token)
+        private async Task IncomeReaderAsync(CancellationToken token)
         {
             try
             {
@@ -127,24 +126,24 @@ namespace Amqp0_9_1.Processors
             }
         }
 
-        internal async Task<T> ReadMethodAsync<T>(CancellationToken cancellationToken)
+        public async Task<T> ReadMethodAsync<T>(CancellationToken cancellationToken)
             where T : AmqpMethod
         {
             return await _methodProcessor.ReadAsync<T>(cancellationToken);
         }
 
-        internal async Task<AmqpMessage> ConsumeMessageAsync(string consumerTag, CancellationToken cancellationToken)
+        public async Task<AmqpMessage> ConsumeMessageAsync(string consumerTag, CancellationToken cancellationToken)
         {
             return await _messageProcessor.ConsumeAsync(consumerTag, cancellationToken);
         }
 
-        internal async Task WriteAsync(ReadOnlyMemory<byte> buffer, CancellationToken cancellationToken)
+        public async Task WriteAsync(ReadOnlyMemory<byte> buffer, CancellationToken cancellationToken)
         {
             await _outcomePipe.Writer.WriteAsync(buffer, cancellationToken).ConfigureAwait(false);
             await _outcomePipe.Writer.FlushAsync(cancellationToken).ConfigureAwait(false);
         }
 
-        internal async Task WriteMethodAsync(AmqpMethod amqpMethod, ushort channel = 0, CancellationToken cancellationToken = default)
+        public async Task WriteMethodAsync(AmqpMethod amqpMethod, ushort channel = 0, CancellationToken cancellationToken = default)
         {
             await WriteAsync(FrameWriter.GetMethodPayload(amqpMethod, channel), cancellationToken).ConfigureAwait(false);
         }
