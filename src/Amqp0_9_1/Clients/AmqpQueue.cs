@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using Amqp0_9_1.Abstractions;
 using Amqp0_9_1.Messages;
 using Amqp0_9_1.Methods.Basic;
@@ -32,15 +33,35 @@ namespace Amqp0_9_1.Clients
 
         public async Task ConsumeAsync(Func<AmqpMessage, Task> consumer, CancellationToken cancellationToken = default)
         {
+            if (consumer == null)
+                throw new ArgumentNullException(nameof(consumer));
+
             var basicConsume = new BasicConsume(_queueName);
             await _amqpProcessor.WriteMethodAsync(basicConsume, _channelId, cancellationToken);
 
             var basicConsumeOk = await _amqpProcessor.ReadMethodAsync<BasicConsumeOk>(cancellationToken);
 
-            while (!cancellationToken.IsCancellationRequested)
+            try
             {
-                var message = await _amqpProcessor.ConsumeMessageAsync(basicConsumeOk.ConsumerTag, cancellationToken);
-                await consumer.Invoke(message);
+                while (!cancellationToken.IsCancellationRequested)
+                {
+                    var message = await _amqpProcessor.ConsumeMessageAsync(basicConsumeOk.ConsumerTag, cancellationToken);
+
+                    try
+                    {
+                        await consumer.Invoke(message);
+                    }
+                    catch (Exception ex)
+                    {
+                        Debug.WriteLine($"Error processing message: {ex.Message}");
+                        // NACK or DLQ ?
+                        throw;
+                    }
+                }
+            }
+            catch (OperationCanceledException)
+            {
+                Debug.WriteLine("Message consumption cancelled");
             }
         }
 
