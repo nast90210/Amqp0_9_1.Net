@@ -6,8 +6,6 @@ namespace Amqp0_9_1.Encoding
     {
         public static byte Bool(bool value) => (byte)(value ? 1 : 0);
 
-        public static byte Octet(byte value) => value;
-
         public static ReadOnlyMemory<byte> Short(ushort value) =>
             new([
                 (byte)(value >> 8),
@@ -36,7 +34,7 @@ namespace Amqp0_9_1.Encoding
 
         public static ReadOnlyMemory<byte> ShortString(string value)
         {
-            byte[] stringBuffer = System.Text.Encoding.UTF8.GetBytes(value);
+            var stringBuffer = System.Text.Encoding.UTF8.GetBytes(value);
             if (stringBuffer.Length > 255)
                 throw new ArgumentException("Short string exceeds 255 bytes.");
 
@@ -48,7 +46,7 @@ namespace Amqp0_9_1.Encoding
 
         public static ReadOnlyMemory<byte> LongString(string value)
         {
-            byte[] stringBuffer = System.Text.Encoding.UTF8.GetBytes(value);
+            var stringBuffer = System.Text.Encoding.UTF8.GetBytes(value);
 
             using var buffer = new MemoryBuffer();
             buffer.Write(Long((uint)stringBuffer.Length));
@@ -58,15 +56,15 @@ namespace Amqp0_9_1.Encoding
 
         public static ReadOnlyMemory<byte> Timestamp(DateTime utcTime)
         {
-            long seconds = ((DateTimeOffset)utcTime).ToUnixTimeSeconds();
+            var seconds = ((DateTimeOffset)utcTime).ToUnixTimeSeconds();
             return LongLong((ulong)seconds);
         }
 
         public static ReadOnlyMemory<byte> Decimal(decimal value)
         {
-            int[] bits = decimal.GetBits(value);
-            byte scale = (byte)(bits[3] >> 16 & 0x7F);
-            int intVal = bits[0];
+            var bits = decimal.GetBits(value);
+            var scale = (byte)(bits[3] >> 16 & 0x7F);
+            var intVal = bits[0];
 
             using var buffer = new MemoryBuffer(5);
             buffer.Write(scale);
@@ -111,41 +109,41 @@ namespace Amqp0_9_1.Encoding
         {
             switch (value)
             {
-                case bool bool_value:
+                case bool boolValue:
                     buffer.Write((byte)'t');
-                    buffer.Write(bool_value ? (byte)1 : (byte)0);
+                    buffer.Write(boolValue ? (byte)1 : (byte)0);
                     break;
 
-                case sbyte sbyte_value:
+                case sbyte sbyteValue:
                     buffer.Write((byte)'b');
-                    buffer.Write((byte)sbyte_value);
+                    buffer.Write((byte)sbyteValue);
                     break;
 
-                case byte byte_value:
+                case byte byteValue:
                     buffer.Write((byte)'B');
-                    buffer.Write(byte_value);
+                    buffer.Write(byteValue);
                     break;
 
                 // Rabbitmq 3.13 use 's' for type short int - 
                 // https://github.com/jbrisbin/rabbit_common/blob/master/src/rabbit_binary_parser.erl#L64
-                case short short_value:
+                case short shortValue:
                     buffer.Write((byte)'s');
-                    buffer.Write(Short((ushort)short_value));
+                    buffer.Write(Short((ushort)shortValue));
                     break;
 
-                case ushort ushort_value:
+                case ushort ushortValue:
                     buffer.Write((byte)'u');
-                    buffer.Write(Short(ushort_value));
+                    buffer.Write(Short(ushortValue));
                     break;
 
-                case int int_value:
+                case int intValue:
                     buffer.Write((byte)'I');
-                    buffer.Write(Long((uint)int_value));
+                    buffer.Write(Long((uint)intValue));
                     break;
 
-                case uint uint_value:
+                case uint uintValue:
                     buffer.Write((byte)'i');
-                    buffer.Write(Long(uint_value));
+                    buffer.Write(Long(uintValue));
                     break;
 
                 // I don't found 'L' in Rabbitmq 3.13 - 
@@ -154,25 +152,25 @@ namespace Amqp0_9_1.Encoding
                 //     Write(ref buffer, (byte)'L', LongLong((ulong)long_value));
                 //     break;
 
-                case ulong ulong_value:
+                case ulong ulongValue:
                     buffer.Write((byte)'l');
-                    buffer.Write(LongLong(ulong_value));
+                    buffer.Write(LongLong(ulongValue));
                     break;
 
-                case decimal decimal_value:
+                case decimal decimalValue:
                     buffer.Write((byte)'D');
-                    buffer.Write(Decimal(decimal_value));
+                    buffer.Write(Decimal(decimalValue));
                     break;
 
                 // Error on short-string - https://www.rabbitmq.com/amqp-0-9-1-errata
-                case string string_value:
+                case string stringValue:
                     buffer.Write((byte)'S');
-                    buffer.Write(LongString(string_value));
+                    buffer.Write(LongString(stringValue));
                     break;
 
-                case DateTime dateTime_value:
+                case DateTime dateTimeValue:
                     buffer.Write((byte)'T');
-                    buffer.Write(Timestamp(dateTime_value));
+                    buffer.Write(Timestamp(dateTimeValue));
                     break;
 
                 case IDictionary<string, object> nestedTable:
@@ -187,7 +185,7 @@ namespace Amqp0_9_1.Encoding
 
                 default:
                     throw new NotSupportedException(
-                        $"Unsupported field value type '{value?.GetType()}'.");
+                        $"Unsupported field value type '{value.GetType()}'.");
             }
         }
 

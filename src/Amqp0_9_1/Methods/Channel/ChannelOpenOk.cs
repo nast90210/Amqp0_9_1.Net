@@ -8,9 +8,9 @@ namespace Amqp0_9_1.Methods.Channel
         internal override ushort ClassId => MethodClassId.Channel;
         internal override ushort MethodId => ChannelMethodId.OpenOk;
 
-        public string? Reserved1 { get; set; }
+        public string? Reserved1 { get; }
 
-        internal ChannelOpenOk(ReadOnlyMemory<byte> payload)
+        public ChannelOpenOk(ReadOnlyMemory<byte> payload)
         {
             Reserved1 = AmqpDecoder.ShortString(ref payload);
         }

@@ -10,9 +10,9 @@ internal sealed class ConnectionStart : AmqpMethod
 
     public ushort VersionMajor { get; }
     public ushort VersionMinor { get; }
-    public Dictionary<string, object> ServerProperties { get; } = [];
-    public string Mechanisms { get; } = string.Empty;
-    public string Locales { get; } = string.Empty;
+    public Dictionary<string, object> ServerProperties { get; }
+    public string Mechanisms { get; }
+    public string Locales { get; }
 
     internal ConnectionStart(ReadOnlyMemory<byte> payload)
     {

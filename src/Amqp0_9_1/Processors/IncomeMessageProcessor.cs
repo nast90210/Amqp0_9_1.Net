@@ -10,30 +10,36 @@ namespace Amqp0_9_1.Processors
     {
         private readonly ChannelReader<AmqpRawFrame> _messageChannelReader;
         private readonly ConcurrentDictionary<string, Channel<AmqpMessage>> _consumers = new();
-        private readonly MessageBuilder messageBuilder = new();
+        private readonly MessageBuilder _messageBuilder = new();
 
         public IncomeMessageProcessor(ChannelReader<AmqpRawFrame> messageChannelReader)
         {
             _messageChannelReader = messageChannelReader;
         }
 
-        internal async void ExecuteAsync(CancellationToken cancellationToken)
+        internal async Task ExecuteAsync(CancellationToken cancellationToken)
         {
-            while (true)
+            try
             {
-                var messageRawFrame = await _messageChannelReader.ReadAsync(cancellationToken);
-
-                ProcessRawMessage(messageRawFrame);
-
-                if (messageBuilder.TryGetMessage(out AmqpMessage? message))
+                while (true)
                 {
+                    var messageRawFrame = await _messageChannelReader.ReadAsync(cancellationToken);
+
+                    ProcessRawMessage(messageRawFrame);
+
+                    if (!_messageBuilder.TryGetMessage(out var message)) continue;
+                    
                     if (message == null)
                         throw new InvalidOperationException("Message can't be null.");
 
-                    var channel = _consumers.GetOrAdd(message.Method.ConsumerTag, Channel.CreateUnbounded<AmqpMessage>());
+                    var channel = _consumers.GetOrAdd(message.Method.ConsumerTag,
+                        Channel.CreateUnbounded<AmqpMessage>());
                     await channel.Writer.WriteAsync(message, cancellationToken);
-                    messageBuilder.Clear();
+                    _messageBuilder.Clear();
                 }
+            }
+            finally
+            {
             }
         }
 
@@ -42,13 +48,13 @@ namespace Amqp0_9_1.Processors
             switch (messageRawFrame.Type)
             {
                 case AmqpFrameType.Method:
-                    messageBuilder.ParseMethod(messageRawFrame);
+                    _messageBuilder.ParseMethod(messageRawFrame);
                     break;
                 case AmqpFrameType.Header:
-                    messageBuilder.ParseHeader(messageRawFrame);
+                    _messageBuilder.ParseHeader(messageRawFrame);
                     break;
                 case AmqpFrameType.Body:
-                    messageBuilder.ParseBody(messageRawFrame);
+                    _messageBuilder.ParseBody(messageRawFrame);
                     break;
             }
         }

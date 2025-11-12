@@ -8,11 +8,11 @@ namespace Amqp0_9_1.Frames
     {
         internal static bool TryParseFrame(ref ReadOnlySequence<byte> buffer, out AmqpRawFrame? frame)
         {
-            SequencePosition? position = buffer.PositionOf(AmqpRawFrame.End);
+            var position = buffer.PositionOf(AmqpRawFrame.End);
 
             if (position == null)
             {
-                frame = default;
+                frame = null;
                 return false;
             }
 
@@ -37,7 +37,7 @@ namespace Amqp0_9_1.Frames
             var channel = AmqpDecoder.Short(ref segment);
             var size = (int)AmqpDecoder.Long(ref segment);
 
-            if (size < 0 || size > 0xFFFFFF)
+            if (size is < 0 or > 0xFFFFFF)
                 throw new ArgumentException("Invalid payload size in AMQP frame.");
 
             if (segment.Length != size)

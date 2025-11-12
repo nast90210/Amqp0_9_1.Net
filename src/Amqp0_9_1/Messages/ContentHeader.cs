@@ -8,7 +8,7 @@ namespace Amqp0_9_1.Messages
         internal ushort ClassId => MethodClassId.Basic;
         internal ushort Weight => 0;
         internal ulong BodySize { get; set; }
-        internal HeaderProperties Properties { get; set; } = null!;
+        internal HeaderProperties Properties { get; set; }
 
         internal ContentHeader(ReadOnlyMemory<byte> payload)
         {

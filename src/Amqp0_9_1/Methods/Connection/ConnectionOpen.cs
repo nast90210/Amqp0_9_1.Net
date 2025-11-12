@@ -11,7 +11,7 @@ namespace Amqp0_9_1.Methods.Connection
 
         public string VirtualHost { get; }
         public string Reserved1 { get; } = string.Empty;
-        public bool Reserved2 { get; }
+        public bool Reserved2 { get; } = false;
 
         public ConnectionOpen(string virtualHost)
         {

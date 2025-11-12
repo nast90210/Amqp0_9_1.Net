@@ -17,4 +17,10 @@
     <PackageReference Include="System.IO.Pipelines" Version="9.0.10" />
     <PackageReference Include="System.Threading.Channels" Version="9.0.10" />
   </ItemGroup>
+
+  <ItemGroup>
+      <InternalsVisibleTo Include="Amqp0_9_1.Unit" />
+      <InternalsVisibleTo Include="DynamicProxyGenAssembly2" />
+  </ItemGroup>
+    
 </Project>

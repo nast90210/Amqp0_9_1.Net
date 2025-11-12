@@ -11,9 +11,7 @@ namespace Amqp0_9_1.Messages
 
             return encoding switch
             {
-                "identity" => System.Text.Encoding.UTF8.GetString(buffer.ToArray()),
-                "utf-8" => System.Text.Encoding.UTF8.GetString(buffer.ToArray()),
-                "utf8" => System.Text.Encoding.UTF8.GetString(buffer.ToArray()),
+                "identity" or "utf-8" or "utf8" => System.Text.Encoding.UTF8.GetString(buffer.ToArray()),
                 "utf-16" => System.Text.Encoding.Unicode.GetString(buffer.ToArray()),
                 "utf-16be" => System.Text.Encoding.BigEndianUnicode.GetString(buffer.ToArray()),
                 "utf-32" => System.Text.Encoding.UTF32.GetString(buffer.ToArray()),

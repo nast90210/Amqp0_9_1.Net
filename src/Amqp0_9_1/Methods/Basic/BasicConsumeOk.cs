@@ -8,7 +8,7 @@ namespace Amqp0_9_1.Methods.Basic
         internal override ushort ClassId => MethodClassId.Basic;
         internal override ushort MethodId => BasicMethodId.ConsumeOk;
 
-        public string ConsumerTag { get; } = null!;
+        public string ConsumerTag { get; }
 
         internal BasicConsumeOk(ReadOnlyMemory<byte> payload)
         {

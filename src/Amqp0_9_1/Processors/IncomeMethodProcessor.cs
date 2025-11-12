@@ -15,16 +15,22 @@ internal sealed class IncomeMethodProcessor
         _methodChanelReader = methodChanelReader;
     }
 
-    public async void ExecuteAsync(CancellationToken cancellationToken)
+    public async Task ExecuteAsync(CancellationToken cancellationToken)
     {
-        while (true)
+        try
         {
-            cancellationToken.ThrowIfCancellationRequested();
+            while (true)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
 
-            var methodRawFrame = await _methodChanelReader.ReadAsync(cancellationToken);
-            var amqpMethod = MethodFactory.Create(methodRawFrame);
-            var channel = _waiters.GetOrAdd(amqpMethod.GetType(), Channel.CreateBounded<AmqpMethod>(1));
-            await channel.Writer.WriteAsync(amqpMethod, cancellationToken);
+                var methodRawFrame = await _methodChanelReader.ReadAsync(cancellationToken);
+                var amqpMethod = MethodFactory.Create(methodRawFrame);
+                var channel = _waiters.GetOrAdd(amqpMethod.GetType(), Channel.CreateBounded<AmqpMethod>(1));
+                await channel.Writer.WriteAsync(amqpMethod, cancellationToken);
+            }
+        }
+        finally
+        {
         }
     }
 

@@ -1,5 +1,5 @@
+using Amqp0_9_1.Abstractions;
 using Amqp0_9_1.Methods.Channel;
-using Amqp0_9_1.Processors;
 using Amqp0_9_1.Constants;
 
 namespace Amqp0_9_1.Clients
@@ -7,10 +7,10 @@ namespace Amqp0_9_1.Clients
     public sealed class AmqpChannel : IDisposable
     {
         private readonly ushort _channelId;
-        private readonly InternalAmqpProcessor _amqpProcessor;
+        private readonly IAmqpProcessor _amqpProcessor;
         private bool _isOpened;
 
-        internal AmqpChannel(ushort channelId, InternalAmqpProcessor amqpProcessor)
+        internal AmqpChannel(ushort channelId, IAmqpProcessor amqpProcessor)
         {
             _channelId = channelId;
             _amqpProcessor = amqpProcessor;
@@ -20,8 +20,8 @@ namespace Amqp0_9_1.Clients
         {
             var channelOpen = new ChannelOpen();
             await _amqpProcessor.WriteMethodAsync(channelOpen, _channelId, cancellationToken);
-            var channelOpenOk = await _amqpProcessor.ReadMethodAsync<ChannelOpenOk>(cancellationToken);
-            _isOpened = channelOpenOk != null;
+            await _amqpProcessor.ReadMethodAsync<ChannelOpenOk>(cancellationToken);
+            _isOpened = true;
         }
 
         public async Task<AmqpExchange> ExchangeDeclareAsync(
@@ -52,21 +52,22 @@ namespace Amqp0_9_1.Clients
         {
             var channelClose = new ChannelClose(replyCode, replyText, exceptionClassId, exceptionMethodId);
             await _amqpProcessor.WriteMethodAsync(channelClose, _channelId, cancellationToken);
-            var channelCloseOk = await _amqpProcessor.ReadMethodAsync<ChannelCloseOk>(cancellationToken);
-            return channelCloseOk != null;
+            _ = await _amqpProcessor.ReadMethodAsync<ChannelCloseOk>(cancellationToken);
+            return true;
         }
 
         public async ValueTask DisposeAsync()
         {
-            if (!_isOpened)
+            if (_isOpened)
             {
                 await CloseAsync(200, "Channel disposing");
+                _isOpened = false;
             }
         }
 
         public void Dispose()
         {
-            DisposeAsync().GetAwaiter().GetResult();
+            DisposeAsync().AsTask().ConfigureAwait(false).GetAwaiter().GetResult();
         }
     }
 }

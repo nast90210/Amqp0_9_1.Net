@@ -4,7 +4,7 @@ namespace Amqp0_9_1.Encoding
     {
         public static bool Bool(ref ReadOnlyMemory<byte> buffer)
         {
-            bool value = (buffer.Span[0] & 0x01) != 0;
+            var value = (buffer.Span[0] & 0x01) != 0;
 
             buffer = buffer.Slice(1);
             return value;
@@ -12,7 +12,7 @@ namespace Amqp0_9_1.Encoding
 
         public static byte Octet(ref ReadOnlyMemory<byte> buffer)
         {
-            byte value = buffer.Span[0];
+            var value = buffer.Span[0];
 
             buffer = buffer.Slice(1);
             return value;
@@ -20,14 +20,14 @@ namespace Amqp0_9_1.Encoding
 
         public static ushort Short(ref ReadOnlyMemory<byte> buffer)
         {
-            ushort value = (ushort)(buffer.Span[0] << 8 | buffer.Span[1]);
+            var value = (ushort)(buffer.Span[0] << 8 | buffer.Span[1]);
             buffer = buffer.Slice(2);
             return value;
         }
 
         public static uint Long(ref ReadOnlyMemory<byte> buffer)
         {
-            uint value = (uint)(
+            var value = (uint)(
                 buffer.Span[0] << 24 |
                 buffer.Span[1] << 16 |
                 buffer.Span[2] << 8 |
@@ -39,14 +39,14 @@ namespace Amqp0_9_1.Encoding
 
         public static ulong LongLong(ref ReadOnlyMemory<byte> buffer)
         {
-            ulong value = (ulong)buffer.Span[0] << 56 |
-                      (ulong)buffer.Span[1] << 48 |
-                      (ulong)buffer.Span[ 2] << 40 |
-                      (ulong)buffer.Span[3] << 32 |
-                      (ulong)buffer.Span[4] << 24 |
-                      (ulong)buffer.Span[5] << 16 |
-                      (ulong)buffer.Span[6] << 8 |
-                      buffer.Span[7];
+            var value = (ulong)buffer.Span[0] << 56 |
+                        (ulong)buffer.Span[1] << 48 |
+                        (ulong)buffer.Span[ 2] << 40 |
+                        (ulong)buffer.Span[3] << 32 |
+                        (ulong)buffer.Span[4] << 24 |
+                        (ulong)buffer.Span[5] << 16 |
+                        (ulong)buffer.Span[6] << 8 |
+                        buffer.Span[7];
 
             buffer = buffer.Slice(8);
             return value;
@@ -54,39 +54,39 @@ namespace Amqp0_9_1.Encoding
 
         public static char Char(ref ReadOnlyMemory<byte> buffer)
         {
-            var char_value = (char)buffer.Span[0];
+            var charValue = (char)buffer.Span[0];
             buffer = buffer.Slice(1);
-            return char_value;
+            return charValue;
         }
 
         public static string ShortString(ref ReadOnlyMemory<byte> buffer)
         {
             int len = buffer.Span[0];
-            string string_value = System.Text.Encoding.UTF8.GetString(buffer.ToArray(), 1, len);
+            var stringValue = System.Text.Encoding.UTF8.GetString(buffer.ToArray(), 1, len);
 
             buffer = buffer.Slice(1 + len);
-            return string_value;
+            return stringValue;
         }
 
         public static string LongString(ref ReadOnlyMemory<byte> buffer)
         {
-            int len = (int)Long(ref buffer);
-            string string_value = System.Text.Encoding.UTF8.GetString(buffer.ToArray(), 0, len);
+            var len = (int)Long(ref buffer);
+            var stringValue = System.Text.Encoding.UTF8.GetString(buffer.ToArray(), 0, len);
 
             buffer = buffer.Slice(len);
-            return string_value;
+            return stringValue;
         }
 
         public static DateTime Timestamp(ref ReadOnlyMemory<byte> buffer)
         {
-            ulong seconds = LongLong(ref buffer);
+            var seconds = LongLong(ref buffer);
             return DateTimeOffset.FromUnixTimeSeconds((long)seconds).UtcDateTime;
         }
 
         public static decimal Decimal(ref ReadOnlyMemory<byte> buffer)
         {
-            byte scale = buffer.Span[0];
-            int intVal = 
+            var scale = buffer.Span[0];
+            var intVal = 
                 buffer.Span[1] << 24 |
                 buffer.Span[2] << 16 |
                 buffer.Span[3] << 8 |
@@ -98,13 +98,13 @@ namespace Amqp0_9_1.Encoding
 
         public static List<object> Array(ref ReadOnlyMemory<byte> buffer)
         {
-            uint arrayLen = Long(ref buffer);
-            int end = (int)arrayLen;
+            var arrayLen = Long(ref buffer);
+            var end = (int)arrayLen;
             var list = new List<object>();
 
             while (buffer.Length < end)
             {
-                char type = (char)buffer.Span[0];
+                var type = (char)buffer.Span[0];
 
                 buffer = buffer.Slice(1);
 
@@ -156,7 +156,7 @@ namespace Amqp0_9_1.Encoding
                         list.Add(Array(ref buffer));
                         break;
                     default:
-                        throw new NotSupportedException($"Unsupported field‑array element type '{type}'.");
+                        throw new NotSupportedException($"Unsupported field-array element type '{type}'.");
                 }
             }
 
@@ -175,9 +175,9 @@ namespace Amqp0_9_1.Encoding
 
             while (!tableBuffer.IsEmpty)
             {
-                string key = ShortString(ref tableBuffer);
+                var key = ShortString(ref tableBuffer);
 
-                char type = Char(ref tableBuffer);
+                var type = Char(ref tableBuffer);
 
                 object value = type switch
                 {

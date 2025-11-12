@@ -36,9 +36,8 @@ dotnet add package Amqp0_9_1.Net
 ### Basic Example
 
 ```csharp
-using Amqp0_9_1.Net;
-using System.Text;
-using System.Threading.Tasks;
+using Amqp0_9_1.Clients;
+using Amqp0_9_1.Constants;
 
 // Create a connection factory
 using var connection = new AmqpConnection("localhost", 5672);

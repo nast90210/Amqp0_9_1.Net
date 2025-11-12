@@ -8,7 +8,7 @@ internal sealed class ConnectionOpenOk : AmqpMethod
     internal override ushort ClassId => MethodClassId.Connection;
     internal override ushort MethodId => ConnectionMethodId.OpenOk;
 
-    public string KnownHosts { get; } = string.Empty;
+    public string KnownHosts { get; }
 
     internal ConnectionOpenOk(ReadOnlyMemory<byte> payload)
     {

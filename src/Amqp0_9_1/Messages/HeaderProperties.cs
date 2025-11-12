@@ -24,7 +24,7 @@ namespace Amqp0_9_1.Messages
             //TODO: Implement dynamic properties flag
             var flag = AmqpDecoder.Short(ref payload);
 
-            for (int index = 15; index >= 0; index--)
+            for (var index = 15; index >= 0; index--)
             {
                 var isExist = (flag >> index & 1) != 0;
                 if (!isExist)
