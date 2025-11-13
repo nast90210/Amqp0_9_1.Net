@@ -1,6 +1,12 @@
 # Amqp0_9_1.Net
 
+
 A lightweight .NET implementation of the AMQP 0‑9‑1 protocol, offering an easy‑to‑use, asynchronous API for communicating with RabbitMQ and other AMQP‑compatible brokers.
+**It's currently in early development stage.**
+
+![NuGet](https://img.shields.io/nuget/v/Amqp0_9_1.Net)
+![GitHub issues](https://img.shields.io/github/issues/nast90210/Amqp0_9_1.Net)
+![GitHub last commit](https://img.shields.io/github/last-commit/nast90210/Amqp0_9_1.Net)
 
 ---
 
@@ -94,7 +100,7 @@ Please follow the existing coding style and include XML documentation for public
 
 ## License
 
-This project is licensed under the [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE). See the `LICENSE` file for full details.
+This project is licensed under the [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE).
 
 ---
 

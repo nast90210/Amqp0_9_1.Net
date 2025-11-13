@@ -11,6 +11,16 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <LangVersion>preview</LangVersion>
+
+    <Version>0.0.1</Version>
+    <PackageId>Amqp0_9_1.Net</PackageId>
+    <Title>AMQP 0.9.1 .NET</Title>
+    <Description>AMQP 0.9.1 protocol implementation for .NET</Description>
+    <Authors>Mikhail Strebel</Authors>
+    <PackageProjectUrl>https://github.com/nast90210/Amqp0_9_1.Net</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/nast90210/Amqp0_9_1.Net</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
   </PropertyGroup>
 
   <ItemGroup>
@@ -22,5 +32,5 @@
       <InternalsVisibleTo Include="Amqp0_9_1.Unit" />
       <InternalsVisibleTo Include="DynamicProxyGenAssembly2" />
   </ItemGroup>
-    
+  
 </Project>

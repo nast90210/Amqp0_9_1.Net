@@ -1,0 +1,78 @@
+name: Publish NuGet Package
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Bump version and push tag
+        id: tag_version
+        uses: mathieudutour/github-tag-action@v6.1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          default_bump: patch
+          release_branches: main
+
+      - name: Update version in csproj
+        if: steps.tag_version.outputs.new_tag
+        run: |
+          VERSION=${{ steps.tag_version.outputs.new_version }}
+          echo "Updating version to: $VERSION"
+          find . -name "*.csproj" -type f | while read csproj; do
+            sed -i "s/<Version>.*<\/Version>/<Version>$VERSION<\/Version>/g" "$csproj"
+            echo "Updated: $csproj"
+          done
+
+      - name: Commit version update
+        if: steps.tag_version.outputs.new_tag
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add "*.csproj"
+          git commit -m "chore: bump version to ${{ steps.tag_version.outputs.new_version }}"
+          git push
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '6.x'
+
+      - name: Restore dependencies
+        run: dotnet restore
+
+      - name: Build
+        run: dotnet build --configuration Release --no-restore
+
+      - name: Run tests
+        run: dotnet test --configuration Release --no-build --verbosity normal
+        continue-on-error: true
+
+      - name: Pack NuGet
+        if: steps.tag_version.outputs.new_tag
+        run: dotnet pack --configuration Release --output ./nupkg
+
+      - name: Publish to NuGet
+        if: steps.tag_version.outputs.new_tag
+        run: dotnet nuget push ./nupkg/*.nupkg --api-key ${{ secrets.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json --skip-duplicate
+
+      - name: Create Release
+        if: steps.tag_version.outputs.new_tag
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ steps.tag_version.outputs.new_tag }}
+          release_name: Release ${{ steps.tag_version.outputs.new_tag }}
+          body: ${{ steps.tag_version.outputs.changelog }}
+          draft: false
+          prerelease: false
